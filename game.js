@@ -3,11 +3,24 @@
   'use strict';
 
   // ---------- assets ----------
-  const SPRITES = [
-    'turtle_green', 'turtle_baby_blue', 'turtle_sleepy_yellow', 'turtle_snorkel',
-    'turtle_pink', 'turtle_flowercrown', 'turtle_partyhat', 'turtle_golden',
-    'turtle_headband', 'turtle_astronaut', 'turtle_rainbow', 'turtle_pirate'
+  // Ordinary turtles (same behaviour, just different looks) — kept to a small set.
+  const NORMAL_SKINS = [
+    'turtle_green', 'turtle_baby_blue', 'turtle_pink', 'turtle_spotted',
+    'turtle_startortoise', 'turtle_snorkel', 'turtle_radiated'
   ];
+  // Each special TYPE has a fixed look so its behaviour is recognisable.
+  const TYPE_SPRITE = {
+    mystery: 'turtle_sleepy_yellow',   // number hidden — deduce it
+    shy: 'turtle_shy',                 // number hidden until neighbours are patched
+    snapper: 'turtle_headband',        // patch must be a perfect square
+    rock: 'turtle_matamata',           // immovable obstacle
+  };
+  const TYPE_INFO = {
+    mystery: { name: 'Mystery turtle', tip: "Its number is hidden! Work out how big its patch must be from the turtles around it." },
+    shy: { name: 'Shy turtle', tip: "Too shy to show its number — it appears once every square next to it is wrapped." },
+    snapper: { name: 'Snapper', tip: 'Picky! Its patch must be a perfect square (like 2×2 or 3×3).' },
+    rock: { name: 'Rock turtle', tip: "Fast asleep as a rock — it can't be wrapped. Fit your patches around it." },
+  };
   const spriteSrc = (name) => `assets/${name}.png`;
 
   // patch colors (cycled per clue)
@@ -72,17 +85,25 @@
   function startStage(index) {
     curIndex = index;
     const raw = LEVELS[index];
-    // derive clue lookup grid + colors + sprites
+    // derive clue lookup grid + rock grid + colors + per-type sprites
     const clueAt = Array.from({ length: raw.h }, () => Array(raw.w).fill(-1));
     raw.clues.forEach((cl, ci) => { clueAt[cl.r][cl.c] = ci; });
+    const rocks = raw.rocks || [];
+    const rockAt = Array.from({ length: raw.h }, () => Array(raw.w).fill(false));
+    rocks.forEach((rk) => { rockAt[rk.r][rk.c] = true; });
+    let nrm = 0;
     cur = {
       ...raw,
-      clueAt,
-      clueMeta: raw.clues.map((cl, ci) => ({
-        ...cl, color: PALETTE[ci % PALETTE.length],
-        sprite: SPRITES[(ci + index * 5) % SPRITES.length]
-      })),
+      clueAt, rocks, rockAt,
+      clueMeta: raw.clues.map((cl, ci) => {
+        const type = cl.type || 'normal';
+        const sprite = type === 'normal'
+          ? NORMAL_SKINS[(nrm++ + index * 3) % NORMAL_SKINS.length]
+          : TYPE_SPRITE[type];
+        return { ...cl, type, color: PALETTE[ci % PALETTE.length], sprite, revealed: type !== 'mystery' && type !== 'shy' };
+      }),
     };
+    maybeIntro(index);
     patches = [];
     patchId = 1;
     hintsLeft = HINTS_PER_STAGE;
@@ -95,11 +116,7 @@
     show('game');
   }
 
-  $('#restartBtn').addEventListener('click', () => {
-    patches = [];
-    $$('.cell').forEach(c => c.classList.remove('awake'));
-    renderPatches(); renderPips();
-  });
+  $('#restartBtn').addEventListener('click', () => startStage(curIndex));
 
   // ---------- render board ----------
   function renderBoard() {
@@ -114,15 +131,20 @@
         if (c === cur.w - 1) cell.classList.add('no-r');
         if (r === cur.h - 1) cell.classList.add('no-b');
         cell.dataset.r = r; cell.dataset.c = c;
+        if (cur.rockAt[r][c]) {
+          cell.classList.add('rock');
+          cell.innerHTML = `<div class="turtle sprite rock-sprite" style="background-image:url('${spriteSrc(TYPE_SPRITE.rock)}');--phase:${r * 3 + c}"></div>`;
+          board.appendChild(cell);
+          continue;
+        }
         const ci = cur.clueAt[r][c];
         if (ci !== -1) {
           const m = cur.clueMeta[ci];
-          const d1 = (-(ci * 0.73) % 4.4).toFixed(2);   // desync blink
-          const d2 = (-(ci * 0.41) % 3.2).toFixed(2);   // desync bob
+          cell.classList.add('clue', `t-${m.type}`);
           cell.innerHTML =
-            `<div class="turtle sprite" style="background-image:url('${spriteSrc(m.sprite)}');animation-delay:${d1}s,${d2}s"></div>` +
+            `<div class="turtle sprite" style="background-image:url('${spriteSrc(m.sprite)}');--phase:${ci}"></div>` +
             `<span class="zzz">z</span>` +
-            `<span class="num">${m.n}</span>`;
+            `<span class="num">${badgeText(m)}</span>`;
           cell.dataset.clue = ci;
         }
         board.appendChild(cell);
@@ -153,17 +175,38 @@
     if ($('#game').classList.contains('active')) { layout(); renderPatches(); }
   });
 
+  // is cell (r,c) covered by a committed patch?
+  function covered(r, c) {
+    return patches.some(p => c >= p.c && c < p.c + p.wc && r >= p.r && r < p.r + p.hc);
+  }
+
+  // shy turtles reveal their number once every neighbouring square is patched (or a rock)
+  function updateReveals() {
+    cur.clueMeta.forEach((m, ci) => {
+      if (m.type !== 'shy' || m.revealed) return;
+      const nbrs = [[m.r - 1, m.c], [m.r + 1, m.c], [m.r, m.c - 1], [m.r, m.c + 1]];
+      const all = nbrs.every(([r, c]) =>
+        r < 0 || c < 0 || r >= cur.h || c >= cur.w || cur.rockAt[r][c] || covered(r, c));
+      if (all) m.revealed = true;
+    });
+  }
+
   // ---------- patches render ----------
   function renderPatches() {
     const layer = $('#drawLayer');
     layer.innerHTML = '';
     patches.forEach(p => layer.appendChild(patchEl(p)));
-    // awake state on satisfied clues
-    $$('.cell').forEach(cell => {
-      const ci = cell.dataset.clue;
-      if (ci === undefined) return;
-      const sat = patches.some(p => p.clueIndex === +ci);
+    updateReveals();
+    // awake state on satisfied clues + keep badges in sync with reveals
+    $$('.cell.clue').forEach(cell => {
+      const ci = +cell.dataset.clue;
+      const m = cur.clueMeta[ci];
+      const sat = patches.some(p => p.clueIndex === ci);
+      if (sat) m.revealed = true;       // wrapping a turtle reveals its hidden number
       cell.classList.toggle('awake', sat);
+      if (m.revealed) cell.classList.add('revealed');
+      const num = cell.querySelector('.num');
+      if (num) num.textContent = badgeText(m);
     });
   }
 
@@ -242,17 +285,25 @@
     let clueIndex = -1, clueCount = 0;
     for (let r = rc.r; r < rc.r + rc.hc; r++)
       for (let c = rc.c; c < rc.c + rc.wc; c++) {
+        if (cur.rockAt[r][c]) return { valid: false, reason: 'rock' };  // can't cover a rock turtle
         const ci = cur.clueAt[r][c];
         if (ci !== -1) { clueCount++; clueIndex = ci; }
       }
     if (clueCount !== 1) return { valid: false };
-    if (rc.wc * rc.hc !== cur.clueMeta[clueIndex].n) return { valid: false };
+    const m = cur.clueMeta[clueIndex];
+    if (rc.wc * rc.hc !== m.n) return { valid: false };
+    if (m.type === 'snapper' && rc.wc !== rc.hc) return { valid: false, reason: 'square' }; // snapper needs a square
     // overlap check
     for (const p of patches) {
       if (!(rc.c + rc.wc <= p.c || p.c + p.wc <= rc.c || rc.r + rc.hc <= p.r || p.r + p.hc <= rc.r))
         return { valid: false };
     }
     return { valid: true, clueIndex };
+  }
+
+  function badgeText(m) {
+    if ((m.type === 'mystery' || m.type === 'shy') && !m.revealed) return '?';
+    return m.n;
   }
 
   function updatePreview(er, ec) {
@@ -270,7 +321,11 @@
     const single = rc.wc === 1 && rc.hc === 1;
     const ev = evaluate(rc);
     if (!ev.valid) {
-      if (!single) flashBad(rc);
+      if (!single) {
+        flashBad(rc);
+        if (ev.reason === 'square') toast('Snappers need a square patch!');
+        else if (ev.reason === 'rock') toast("That's a rock turtle — wrap around it!");
+      }
       return;
     }
     const m = cur.clueMeta[ev.clueIndex];
@@ -315,6 +370,7 @@
       patches = patches.filter(p =>
         (s.c + s.w <= p.c || p.c + p.wc <= s.c || s.r + s.h <= p.r || p.r + p.hc <= s.r));
       patches.push({ id: patchId++, c: s.c, r: s.r, wc: s.w, hc: s.h, clueIndex: idx, color: cur.clueMeta[idx].color });
+      cur.clueMeta[idx].revealed = true;   // a hint also reveals a hidden number
       hintsLeft--;
       $('#hintCount').textContent = hintsLeft;
       renderPatches(); renderPips();
@@ -348,7 +404,7 @@
   }
 
   function openWin(stars) {
-    $('#winTurtle').style.backgroundImage = `url('${spriteSrc(SPRITES[curIndex % SPRITES.length])}')`;
+    $('#winTurtle').style.backgroundImage = `url('${spriteSrc(NORMAL_SKINS[curIndex % NORMAL_SKINS.length])}')`;
     $('#winStars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
     const last = curIndex >= LEVELS.length - 1;
     $('#winSub').textContent = last ? 'You woke every turtle in the sea! 🐢💖' : 'The turtles are wide awake! 🎉';
@@ -394,6 +450,42 @@
       <div style="position:absolute;left:0;top:0;width:138px;height:46px;border:5px solid var(--teal);border-radius:12px;
         background:color-mix(in srgb,var(--teal) 18%,transparent)"></div>
     </div>`;
+  }
+
+  // ---------- new-turtle intros ----------
+  const SEEN_KEY = 'turtlePatches.seenTypes.v1';
+  function getSeen() { try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch { return {}; } }
+  function saveSeen(s) { try { localStorage.setItem(SEEN_KEY, JSON.stringify(s)); } catch {} }
+
+  function maybeIntro(index) {
+    const raw = LEVELS[index];
+    const present = new Set();
+    if (raw.rocks && raw.rocks.length) present.add('rock');
+    (raw.clues || []).forEach(c => { if (c.type) present.add(c.type); });
+    const seen = getSeen();
+    const fresh = [...present].filter(t => TYPE_INFO[t] && !seen[t]);
+    if (!fresh.length) return;
+    fresh.forEach(t => { seen[t] = 1; });
+    saveSeen(seen);
+    const list = $('#introList');
+    list.innerHTML = fresh.map(t => `
+      <div class="intro-row">
+        <div class="intro-turtle turtle sprite" style="background-image:url('${spriteSrc(TYPE_SPRITE[t])}')"></div>
+        <div class="intro-text"><b>${TYPE_INFO[t].name}</b><span>${TYPE_INFO[t].tip}</span></div>
+      </div>`).join('');
+    $('#introModal').classList.add('show');
+  }
+  $('#introClose').addEventListener('click', () => $('#introModal').classList.remove('show'));
+
+  // transient toast message in the board foot
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('.hint-text');
+    if (!el) return;
+    if (!el.dataset.base) el.dataset.base = el.textContent;
+    el.textContent = msg; el.classList.add('warn');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.textContent = el.dataset.base; el.classList.remove('warn'); }, 1600);
   }
 
   // ---------- misc ----------
