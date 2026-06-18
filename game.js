@@ -133,10 +133,14 @@
   // ---------- layout (size board to viewport) ----------
   function layout() {
     const wrap = $('.board-wrap');
-    const availW = wrap.clientWidth - 4;
-    const availH = wrap.clientHeight - 4;
+    const cs = getComputedStyle(wrap);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    // reserve padding + the 4px board outline (both sides) + small fudge
+    const availW = wrap.clientWidth - padX - 10;
+    const availH = wrap.clientHeight - padY - 10;
     cellPx = Math.floor(Math.min(availW / cur.w, availH / cur.h));
-    cellPx = Math.max(28, cellPx);
+    cellPx = Math.max(22, cellPx);
     const bw = cellPx * cur.w, bh = cellPx * cur.h;
     const stage = $('#boardStage');
     stage.style.width = bw + 'px';
