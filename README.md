@@ -1,5 +1,7 @@
 # Turtle Patches 🐢
 
+![Turtle Patches](preview.png)
+
 A cozy ocean **Shikaku** puzzle. Wrap every sleepy turtle in a patch the size of its
 number — fill the board with no overlaps and the turtles wake up!
 
