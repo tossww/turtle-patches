@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Turtle Patches — a cozy ocean puzzle</title>
+  <meta name="description" content="Wrap every number in a patch of that many squares to tuck the turtles in. Solve it and the turtles wake up! 20 cozy ocean levels." />
+  <meta name="theme-color" content="#bdeee7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Turtle Patches" />
+  <meta property="og:title" content="Turtle Patches — a cozy ocean puzzle" />
+  <meta property="og:description" content="Wrap every number in a patch of that many squares to tuck the turtles in. Solve it and the turtles wake up!" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============ HOME ============ -->
+    <section id="home" class="screen active">
+      <div class="home-inner">
+        <div class="home-hero">
+          <div id="heroTurtle" class="hero-img sprite hero-sprite" style="background-image:url('assets/turtle_hero.png')"></div>
+          <div class="bubbles" aria-hidden="true"></div>
+        </div>
+        <h1 class="title">Turtle <span>Patches</span></h1>
+        <p class="subtitle">Tuck every turtle into a patch the size of its number. Solve it and they wake up!</p>
+        <button id="playBtn" class="btn btn-primary big">Play</button>
+        <button id="howBtn" class="btn btn-ghost">How to play</button>
+        <div class="credit">A cozy ocean Shikaku puzzle · 20 stages</div>
+      </div>
+    </section>
+
+    <!-- ============ LEVEL SELECT ============ -->
+    <section id="levels" class="screen">
+      <header class="topbar">
+        <button class="icon-btn" data-nav="home" aria-label="Back">‹</button>
+        <div class="topbar-title">Choose a Stage</div>
+        <div class="spacer"></div>
+      </header>
+      <div id="levelGrid" class="level-grid"></div>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="game" class="screen">
+      <header class="topbar">
+        <button class="icon-btn" data-nav="levels" aria-label="Back">‹</button>
+        <div class="topbar-title">Stage <span id="stageNum">1</span></div>
+        <div class="topbar-actions">
+          <button id="hintBtn" class="pill-btn" aria-label="Hint">💡 <span id="hintCount">3</span></button>
+          <button id="restartBtn" class="icon-btn" aria-label="Restart">↻</button>
+        </div>
+      </header>
+      <div class="board-wrap">
+        <div id="boardStage" class="board-stage">
+          <div id="board" class="board"></div>
+          <div id="drawLayer" class="draw-layer"></div>
+        </div>
+      </div>
+      <div class="board-foot">
+        <div id="progressPips" class="pips"></div>
+        <div class="hint-text">Drag across the squares to wrap each turtle.</div>
+      </div>
+    </section>
+
+    <!-- ============ WIN MODAL ============ -->
+    <div id="winModal" class="modal">
+      <div class="modal-card pop">
+        <div class="confetti" aria-hidden="true"></div>
+        <div id="winTurtle" class="win-turtle sprite win-sprite"></div>
+        <h2 class="win-title">Stage Clear!</h2>
+        <p id="winSub" class="win-sub">The turtles are wide awake! 🎉</p>
+        <div class="win-stars" id="winStars">★ ★ ★</div>
+        <div class="win-actions">
+          <button id="winReplay" class="btn btn-ghost">Replay</button>
+          <button id="winNext" class="btn btn-primary">Next ›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ HOW TO PLAY MODAL ============ -->
+    <div id="howModal" class="modal">
+      <div class="modal-card pop how-card">
+        <h2 class="win-title">How to play</h2>
+        <div class="how-demo" id="howDemo"></div>
+        <ul class="how-list">
+          <li><b>Drag</b> across squares to draw a patch around a sleepy turtle.</li>
+          <li>Each patch must have <b>exactly as many squares as the turtle's number</b>.</li>
+          <li>Every patch holds <b>one</b> turtle. Fill the whole board with no overlaps.</li>
+          <li><b>Tap a patch</b> to remove it. Stuck? Use a 💡 hint.</li>
+        </ul>
+        <button id="howClose" class="btn btn-primary">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
