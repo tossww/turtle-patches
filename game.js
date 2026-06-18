@@ -180,6 +180,15 @@
     return patches.some(p => c >= p.c && c < p.c + p.wc && r >= p.r && r < p.r + p.hc);
   }
 
+  // a stage is only solved when every clue is wrapped AND no ground tile is left empty
+  function boardFull() {
+    for (let r = 0; r < cur.h; r++)
+      for (let c = 0; c < cur.w; c++)
+        if (!cur.rockAt[r][c] && !covered(r, c)) return false;
+    return true;
+  }
+  function solved() { return patches.length === cur.clues.length && boardFull(); }
+
   // shy turtles reveal their number once every neighbouring square is patched (or a rock)
   function updateReveals() {
     cur.clueMeta.forEach((m, ci) => {
@@ -332,7 +341,7 @@
     patches.push({ id: patchId++, c: rc.c, r: rc.r, wc: rc.wc, hc: rc.hc, clueIndex: ev.clueIndex, color: m.color });
     renderPatches(); renderPips();
     haptic();
-    if (patches.length === cur.clues.length) onWin();
+    if (solved()) onWin();
   }
 
   function flashBad(rc) {
@@ -374,7 +383,7 @@
       hintsLeft--;
       $('#hintCount').textContent = hintsLeft;
       renderPatches(); renderPips();
-      if (patches.length === cur.clues.length) onWin();
+      if (solved()) onWin();
       return;
     }
   });
