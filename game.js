@@ -497,6 +497,48 @@
     toastTimer = setTimeout(() => { el.textContent = el.dataset.base; el.classList.remove('warn'); }, 1600);
   }
 
+  // ---------- install / add to home screen (PWA) ----------
+  let deferredPrompt = null;
+  const installBtn = $('#installBtn');
+  const isStandalone = () =>
+    window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS
+
+  function showInstall() { if (installBtn && !isStandalone()) installBtn.hidden = false; }
+  function hideInstall() { if (installBtn) installBtn.hidden = true; }
+
+  // Android / desktop Chrome: capture the prompt and reveal the button.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstall();
+  });
+  window.addEventListener('appinstalled', () => { deferredPrompt = null; hideInstall(); });
+
+  if (installBtn) {
+    // iOS Safari never fires beforeinstallprompt — show the button (with a guide) when not installed.
+    if (isIOS() && !isStandalone()) showInstall();
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') hideInstall();
+      } else {
+        $('#iosModal').classList.add('show'); // no programmatic install (iOS / unsupported) → show steps
+      }
+    });
+  }
+  $('#iosClose')?.addEventListener('click', () => $('#iosModal').classList.remove('show'));
+
+  // Register the service worker (enables offline + installability).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => console.warn('SW register failed', err));
+    });
+  }
+
   // ---------- misc ----------
   function haptic() { if (navigator.vibrate) navigator.vibrate(8); }
 

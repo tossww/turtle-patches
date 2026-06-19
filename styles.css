@@ -56,6 +56,16 @@ body {
 .btn-primary:hover { filter: brightness(1.05); }
 .btn-ghost { background: rgba(255,255,255,.7); color: var(--teal-deep); box-shadow: var(--shadow-sm); }
 .btn.big { font-size: 22px; padding: 16px 56px; }
+.btn-install {
+  background: #fff; color: var(--teal-deep); font-size: 15px; font-weight: 600;
+  padding: 11px 22px; box-shadow: var(--shadow-sm); border: 2px solid var(--aqua-3);
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 2px;
+}
+.btn-install[hidden] { display: none; }
+.ios-icon { width: 76px; height: 76px; border-radius: 18px; box-shadow: var(--shadow); margin-bottom: 8px; }
+.ios-steps { margin: 14px 0 18px; }
+.ios-steps li { margin: 8px 0; }
+.ios-share { vertical-align: -3px; margin: 0 2px; }
 
 .icon-btn {
   width: 42px; height: 42px; border-radius: 50%; border: none;

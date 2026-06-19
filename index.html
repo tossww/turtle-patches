@@ -14,6 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 </head>
 <body>
   <div id="app">
@@ -28,6 +30,7 @@
         <p class="subtitle">Tuck every turtle into a patch the size of its number. Solve it and they wake up!</p>
         <button id="playBtn" class="btn btn-primary big">Play</button>
         <button id="howBtn" class="btn btn-ghost">How to play</button>
+        <button id="installBtn" class="btn btn-install" hidden>📲 Add to Home Screen</button>
         <div class="credit">A cozy ocean Shikaku puzzle · 50 stages</div>
       </div>
     </section>
@@ -76,6 +79,23 @@
           <button id="winReplay" class="btn btn-ghost">Replay</button>
           <button id="winNext" class="btn btn-primary">Next ›</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ============ iOS INSTALL GUIDE MODAL ============ -->
+    <div id="iosModal" class="modal">
+      <div class="modal-card pop">
+        <img src="icons/apple-touch-icon.png" alt="" class="ios-icon" />
+        <h2 class="win-title">Add to Home Screen</h2>
+        <p class="win-sub">Play Turtle Patches like an app — fullscreen, with its own icon.</p>
+        <ol class="how-list ios-steps">
+          <li>Tap the <b>Share</b> button
+            <svg class="ios-share" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#2bb6a3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+            at the bottom of Safari.</li>
+          <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+          <li>Tap <b>Add</b> — done! 🐢</li>
+        </ol>
+        <button id="iosClose" class="btn btn-primary">Got it!</button>
       </div>
     </div>
 
